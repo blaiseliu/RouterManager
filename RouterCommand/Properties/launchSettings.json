@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "RouterCommand": {
+      "commandName": "Project",
+      "commandLineArgs": "status -d EchoShow -c Allowed"
+    }
+  }
+}
