@@ -10,6 +10,7 @@ namespace RouterCommand.Processes
     {
         public abstract void Process(T options);
         protected Logger Logger =  new LoggerConfiguration()
+            .WriteTo.Console()
             .WriteTo.File($"D:\\Logs\\NetGear{DateTime.Now:yyyyMMdd.HHmmss}.log")
             .CreateLogger();
     }
