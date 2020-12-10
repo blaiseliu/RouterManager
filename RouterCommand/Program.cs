@@ -15,8 +15,8 @@ namespace RouterCommand
                 .WithParsed(x=>new StatusProcess().Process(x))
                 .WithNotParsed(HandleParseError);
             
-            Console.WriteLine("Press any key to finish.");
-            Console.ReadKey(true);
+            //Console.WriteLine("Press any key to finish.");
+            //Console.ReadKey(true);
         }
         private static void HandleParseError(IEnumerable<Error> errors)
         {

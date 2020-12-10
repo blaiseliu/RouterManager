@@ -2,10 +2,11 @@
 using OpenQA.Selenium.Firefox;
 using OpenQA.Selenium.Support.UI;
 using RouterCommand.Enums;
-using RouterCommand.Enums.Attributes;
+using RouterCommand.LoggerHelpers;
+using RouterCommand.PageHelpers;
 using RouterCommand.ParseOptions;
-using RouterCommand.ViewModels;
 using SeleniumExtras.WaitHelpers;
+using Serilog.Core;
 
 namespace RouterCommand.Processes
 {
@@ -36,89 +37,68 @@ namespace RouterCommand.Processes
                 lnkAccessControl.Click();
                 Logger.Information("Open Access Control page");
 
-
                 wait.Until(ExpectedConditions.ElementIsVisible(By.Id("page2")));
                 var iframe = driver.FindElementById("page2");
                 driver.SwitchTo().Frame(iframe);
 
-                //wait.Until(ExpectedConditions.ElementIsVisible(By.XPath("//div[text()=' Access Control']")));
-                //var framecontent = driver.PageSource;
                 Logger.Information("In the Frame.");
 
-                var summary = GetDeviceSummary(options.Device, driver, out var xpathCheckbox);
+                var summary = driver.GetDeviceSummary(options.Device, out var xpathCheckbox);
 
-                Logger.Information($"Device: {summary.Device}");
-                Logger.Information($"Status: {summary.Status}");
-                Logger.Information($"Device Name: {summary.DeviceName}");
-                Logger.Information($"IP Address: {summary.IPAddress}");
-                Logger.Information($"MAC Address: {summary.MacAddress}");
-                Logger.Information($"Connection Type: {summary.ConnectionType}");
+                Logger.DeviceStatusInformation(summary);
 
-                if (options.Status == DeviceStatus.Allowed && summary.Status.Equals("Blocked"))
+                var allow = options.Status == DeviceStatus.Allowed && summary.Status.Equals("Blocked");
+                var block = options.Status == DeviceStatus.Blocked && summary.Status.Equals("Allowed");
+                if (!(allow ||block))
                 {
-                    var chk = driver.FindElementByXPath(xpathCheckbox);
-                    chk.Click();
-                    Logger.Information("Check");
-
-                    var btnAllow = driver.FindElementById("allow");
-                    btnAllow.Click();
-                    Logger.Information("Allow");
-
-                    wait.Until(ExpectedConditions.StalenessOf(chk));
+                    Logger.Information($"The device {options.Device} is {summary.Status}. No need to change.");
+                    return;
+                }
+                if (allow)
+                {
+                    AllowDevice(driver, xpathCheckbox, wait);
                 }
 
-                if (options.Status == DeviceStatus.Blocked && summary.Status.Equals("Allowed"))
+                if (block)
                 {
-                    var chk = driver.FindElementByXPath(xpathCheckbox);
-                    chk.Click();
-                    Logger.Information("Check");
-
-                    var btnBlock = driver.FindElementById("block");
-                    btnBlock.Click();
-                    Logger.Information("Block");
-
-                    wait.Until(ExpectedConditions.StalenessOf(chk));
+                    BlockDevice(driver, xpathCheckbox, wait);
                 }
 
-                var status = GetDeviceStatus(options.Device, driver);
+                var status = driver.GetDeviceStatus(options.Device);
                 Logger.Information($"Device {options.Device} is {status}");
             }
         }
-        private static string GetDeviceStatus(Device device, FirefoxDriver driver)
+
+        
+
+        private void BlockDevice(FirefoxDriver driver, string xpathCheckbox, WebDriverWait wait)
         {
-            var macAddress = device.MacAddress();
-            var xpathDevice = $"//tr[td/span/text()='{macAddress}']";
-            
-            var statusElement = driver.FindElementByXPath($"{xpathDevice}/td[2]");
-            
-            return statusElement.Text;
+            var chk = driver.FindElementByXPath(xpathCheckbox);
+            chk.Click();
+            Logger.Information("Check");
+
+            var btnBlock = driver.FindElementById("block");
+            btnBlock.Click();
+            Logger.Information("Block");
+
+            var alert = wait.Until(ExpectedConditions.AlertIsPresent());
+            alert.Accept();
+            Logger.Information("Confirm Block");
+
+            wait.Until(ExpectedConditions.StalenessOf(chk));
         }
-        private static DeviceStatusSummary GetDeviceSummary(Device device, FirefoxDriver driver, out string xpathCheckbox)
+
+        private void AllowDevice(FirefoxDriver driver, string xpathCheckbox, WebDriverWait wait)
         {
-            var test = driver.PageSource;
+            var chk = driver.FindElementByXPath(xpathCheckbox);
+            chk.Click();
+            Logger.Information("Check");
 
-            var macAddress = device.MacAddress();
-            var xpathDevice = $"//tr[td/span/text()='{macAddress}']";
-            var deviceRow = driver.FindElementByXPath(xpathDevice);
-            //wait.Until(ExpectedConditions.ElementIsVisible(By.XPath(xpathDevice)));
-            
-            xpathCheckbox = $"{xpathDevice}/td[1]/input";
-            var statusElement = driver.FindElementByXPath($"{xpathDevice}/td[2]");
-            var deviceNameElement = driver.FindElementByXPath($"{xpathDevice}/td[3]");
-            var ipAddressElement = driver.FindElementByXPath($"{xpathDevice}/td[4]");
-            var macAddressElement = driver.FindElementByXPath($"{xpathDevice}/td[5]");
-            var connectionTypeElement = driver.FindElementByXPath($"{xpathDevice}/td[6]");
-            var summary = new DeviceStatusSummary
-            {
-                Device = device,
-                Status = statusElement.Text,
-                DeviceName = deviceNameElement.Text,
-                IPAddress = ipAddressElement.Text,
-                MacAddress = macAddressElement.Text,
-                ConnectionType = connectionTypeElement.Text
-            };
+            var btnAllow = driver.FindElementById("allow");
+            btnAllow.Click();
+            Logger.Information("Allow");
 
-            return summary;
+            wait.Until(ExpectedConditions.StalenessOf(chk));
         }
     }
 }
