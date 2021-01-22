@@ -28,8 +28,6 @@ namespace RouterCommand.Services
 
             Console.WriteLine("Press any key to finish.");
             Console.ReadKey(true);
-
-            _log.LogInformation("Startup Run {time}", DateTime.Now);
         }
 
         private static void HandleParseError(IEnumerable<Error> errors)

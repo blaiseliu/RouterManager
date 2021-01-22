@@ -22,8 +22,6 @@ namespace RouterCommand
                     .WriteTo.Console()
                     .CreateLogger();
 
-            Log.Logger.Information("Application Starting");
-
             var host = Host.CreateDefaultBuilder()
                     .ConfigureServices((context, services) =>
                     {
